@@ -1,9 +1,13 @@
 //
 //  CPYFolder.swift
-//  Clipy
 //
-//  Created by 古林俊佑 on 2015/06/21.
-//  Copyright (c) 2015年 Shunsuke Furubayashi. All rights reserved.
+//  Clipy
+//  GitHub: https://github.com/clipy
+//  HP: https://clipy-app.com
+//
+//  Created by Econa77 on 2015/06/21.
+//
+//  Copyright © 2015-2018 Clipy Project.
 //
 
 import Cocoa
@@ -12,11 +16,11 @@ import RealmSwift
 final class CPYFolder: Object {
 
     // MARK: - Properties
-    dynamic var index       = 0
-    dynamic var enable      = true
-    dynamic var title       = ""
-    dynamic var identifier  = UUID().uuidString
-    let snippets            = List<CPYSnippet>()
+    @objc dynamic var index = 0
+    @objc dynamic var enable = true
+    @objc dynamic var title = ""
+    @objc dynamic var identifier = UUID().uuidString
+    let snippets = List<CPYSnippet>()
 
     // MARK: Primary Key
     override static func primaryKey() -> String? {
@@ -75,7 +79,7 @@ extension CPYFolder {
         let realm = try! Realm()
         guard let folder = realm.object(ofType: CPYFolder.self, forPrimaryKey: identifier) else { return }
         guard let savedSnippet = realm.object(ofType: CPYSnippet.self, forPrimaryKey: snippet.identifier), let index = folder.snippets.index(of: savedSnippet) else { return }
-        folder.realm?.transaction { folder.snippets.remove(objectAtIndex: index) }
+        folder.realm?.transaction { folder.snippets.remove(at: index) }
         folder.rearrangesSnippetIndex()
     }
 }

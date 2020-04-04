@@ -4,8 +4,10 @@ use_frameworks!
 source 'https://github.com/CocoaPods/Specs.git'
 
 target 'Clipy' do
- 
+
+  # Application
   pod 'PINCache'
+  pod 'Sauce'
   pod 'Sparkle'
   pod 'RealmSwift'
   pod 'Fabric'
@@ -17,8 +19,12 @@ target 'Clipy' do
   pod 'KeyHolder'
   pod 'RxScreeen'
   pod 'AEXML'
-
+  pod 'LetsMove'
+  pod 'SwiftHEXColors'
+  # Utility
+  pod 'BartyCrouch'
   pod 'SwiftLint'
+  pod 'SwiftGen'
 
   target 'ClipyTests' do
     inherit! :search_paths

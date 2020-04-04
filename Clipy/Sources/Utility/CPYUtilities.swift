@@ -1,9 +1,13 @@
 //
 //  CPYUtilities.swift
-//  Clipy
 //
-//  Created by 古林俊佑 on 2015/06/21.
-//  Copyright (c) 2015年 Shunsuke Furubayashi. All rights reserved.
+//  Clipy
+//  GitHub: https://github.com/clipy
+//  HP: https://clipy-app.com
+//
+//  Created by Econa77 on 2015/06/21.
+//
+//  Copyright © 2015-2018 Clipy Project.
 //
 
 import Cocoa
@@ -15,8 +19,8 @@ final class CPYUtilities {
 
     static func initSDKs() {
         // Fabric
-        UserDefaults.standard.register(defaults: ["NSApplicationCrashOnExceptions": true])
-        if UserDefaults.standard.bool(forKey: Constants.UserDefaults.collectCrashReport) {
+        AppEnvironment.current.defaults.register(defaults: ["NSApplicationCrashOnExceptions": true])
+        if AppEnvironment.current.defaults.bool(forKey: Constants.UserDefaults.collectCrashReport) {
             Fabric.with([Answers.self, Crashlytics.self])
             CPYUtilities.sendCustomLog(with: "applicationDidFinishLaunching")
         }
@@ -63,21 +67,19 @@ final class CPYUtilities {
         /* Beta */
         defaultValues.updateValue(NSNumber(value: true), forKey: Constants.Beta.pastePlainText)
         defaultValues.updateValue(NSNumber(value: 0), forKey: Constants.Beta.pastePlainTextModifier)
+        defaultValues.updateValue(NSNumber(value: false), forKey: Constants.Beta.deleteHistory)
+        defaultValues.updateValue(NSNumber(value: 0), forKey: Constants.Beta.deleteHistoryModifier)
+        defaultValues.updateValue(NSNumber(value: false), forKey: Constants.Beta.pasteAndDeleteHistory)
+        defaultValues.updateValue(NSNumber(value: 0), forKey: Constants.Beta.pasteAndDeleteHistoryModifier)
         defaultValues.updateValue(NSNumber(value: false), forKey: Constants.Beta.observerScreenshot)
 
-        UserDefaults.standard.register(defaults: defaultValues)
-        UserDefaults.standard.synchronize()
+        AppEnvironment.current.defaults.register(defaults: defaultValues)
+        AppEnvironment.current.defaults.synchronize()
     }
 
     static func applicationSupportFolder() -> String {
         let paths = NSSearchPathForDirectoriesInDomains(.applicationSupportDirectory, .userDomainMask, true)
-        var basePath: String!
-        if paths.count > 0 {
-            basePath = paths.first
-        } else {
-            basePath = NSTemporaryDirectory()
-        }
-
+        let basePath: String = paths.first ?? NSTemporaryDirectory()
         return (basePath as NSString).appendingPathComponent(Constants.Application.name)
     }
 
@@ -105,7 +107,7 @@ final class CPYUtilities {
     }
 
     static func sendCustomLog(with name: String) {
-        if UserDefaults.standard.bool(forKey: Constants.UserDefaults.collectCrashReport) {
+        if AppEnvironment.current.defaults.bool(forKey: Constants.UserDefaults.collectCrashReport) {
             Answers.logCustomEvent(withName: name, customAttributes: nil)
         }
     }

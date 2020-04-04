@@ -1,9 +1,13 @@
 //
 //  CPYShortcutsPreferenceViewController.swift
-//  Clipy
 //
-//  Created by 古林俊佑 on 2016/02/26.
-//  Copyright © 2016年 Shunsuke Furubayashi. All rights reserved.
+//  Clipy
+//  GitHub: https://github.com/clipy
+//  HP: https://clipy-app.com
+//
+//  Created by Econa77 on 2016/02/26.
+//
+//  Copyright © 2015-2018 Clipy Project.
 //
 
 import Cocoa
@@ -13,9 +17,10 @@ import Magnet
 class CPYShortcutsPreferenceViewController: NSViewController {
 
     // MARK: - Properties
-    @IBOutlet weak var mainShortcutRecordView: RecordView!
-    @IBOutlet weak var historyShortcutRecordView: RecordView!
-    @IBOutlet weak var snippetShortcutRecordView: RecordView!
+    @IBOutlet private weak var mainShortcutRecordView: RecordView!
+    @IBOutlet private weak var historyShortcutRecordView: RecordView!
+    @IBOutlet private weak var snippetShortcutRecordView: RecordView!
+    @IBOutlet private weak var clearHistoryShortcutRecordView: RecordView!
 
     // MARK: - Initialize
     override func loadView() {
@@ -23,17 +28,19 @@ class CPYShortcutsPreferenceViewController: NSViewController {
         mainShortcutRecordView.delegate = self
         historyShortcutRecordView.delegate = self
         snippetShortcutRecordView.delegate = self
+        clearHistoryShortcutRecordView.delegate = self
         prepareHotKeys()
     }
 
 }
 
 // MARK: - Shortcut
-fileprivate extension CPYShortcutsPreferenceViewController {
-    fileprivate func prepareHotKeys() {
-        mainShortcutRecordView.keyCombo = HotKeyService.shared.mainKeyCombo
-        historyShortcutRecordView.keyCombo = HotKeyService.shared.historyKeyCombo
-        snippetShortcutRecordView.keyCombo = HotKeyService.shared.snippetKeyCombo
+private extension CPYShortcutsPreferenceViewController {
+    func prepareHotKeys() {
+        mainShortcutRecordView.keyCombo = AppEnvironment.current.hotKeyService.mainKeyCombo
+        historyShortcutRecordView.keyCombo = AppEnvironment.current.hotKeyService.historyKeyCombo
+        snippetShortcutRecordView.keyCombo = AppEnvironment.current.hotKeyService.snippetKeyCombo
+        clearHistoryShortcutRecordView.keyCombo = AppEnvironment.current.hotKeyService.clearHistoryKeyCombo
     }
 }
 
@@ -50,11 +57,13 @@ extension CPYShortcutsPreferenceViewController: RecordViewDelegate {
     func recordViewDidClearShortcut(_ recordView: RecordView) {
         switch recordView {
         case mainShortcutRecordView:
-            HotKeyService.shared.change(with: .main, keyCombo: nil)
+            AppEnvironment.current.hotKeyService.change(with: .main, keyCombo: nil)
         case historyShortcutRecordView:
-            HotKeyService.shared.change(with: .history, keyCombo: nil)
+            AppEnvironment.current.hotKeyService.change(with: .history, keyCombo: nil)
         case snippetShortcutRecordView:
-            HotKeyService.shared.change(with: .snippet, keyCombo: nil)
+            AppEnvironment.current.hotKeyService.change(with: .snippet, keyCombo: nil)
+        case clearHistoryShortcutRecordView:
+            AppEnvironment.current.hotKeyService.changeClearHistoryKeyCombo(nil)
         default: break
         }
     }
@@ -62,11 +71,13 @@ extension CPYShortcutsPreferenceViewController: RecordViewDelegate {
     func recordView(_ recordView: RecordView, didChangeKeyCombo keyCombo: KeyCombo) {
         switch recordView {
         case mainShortcutRecordView:
-            HotKeyService.shared.change(with: .main, keyCombo: keyCombo)
+            AppEnvironment.current.hotKeyService.change(with: .main, keyCombo: keyCombo)
         case historyShortcutRecordView:
-            HotKeyService.shared.change(with: .history, keyCombo: keyCombo)
+            AppEnvironment.current.hotKeyService.change(with: .history, keyCombo: keyCombo)
         case snippetShortcutRecordView:
-            HotKeyService.shared.change(with: .snippet, keyCombo: keyCombo)
+            AppEnvironment.current.hotKeyService.change(with: .snippet, keyCombo: keyCombo)
+        case clearHistoryShortcutRecordView:
+            AppEnvironment.current.hotKeyService.changeClearHistoryKeyCombo(keyCombo)
         default: break
         }
     }

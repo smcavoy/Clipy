@@ -1,28 +1,28 @@
 //
 //  ExcludeAppService.swift
-//  Clipy
 //
-//  Created by 古林俊佑 on 2017/02/10.
-//  Copyright © 2017年 Shunsuke Furubayashi. All rights reserved.
+//  Clipy
+//  GitHub: https://github.com/clipy
+//  HP: https://clipy-app.com
+//
+//  Created by Econa77 on 2017/02/10.
+//
+//  Copyright © 2015-2018 Clipy Project.
 //
 
 import Foundation
 import RxSwift
+import RxCocoa
 
 final class ExcludeAppService {
 
     // MARK: - Properties
-    static let shared = ExcludeAppService()
-
     fileprivate(set) var applications = [CPYAppInfo]()
-    fileprivate var frontApplication = Variable<NSRunningApplication?>(nil)
-    fileprivate let defaults = UserDefaults.standard
+    fileprivate var frontApplication = BehaviorRelay<NSRunningApplication?>(value: nil)
     fileprivate var disposeBag = DisposeBag()
 
     // MARK: - Initialize
-    init() {
-        guard let data = defaults.object(forKey: Constants.UserDefaults.excludeApplications) as? Data else { return }
-        guard let applications = NSKeyedUnarchiver.unarchiveObject(with: data) as? [CPYAppInfo] else { return }
+    init(applications: [CPYAppInfo]) {
         self.applications = applications
     }
 
@@ -30,10 +30,10 @@ final class ExcludeAppService {
 
 // MARK: - Monitor Applications
 extension ExcludeAppService {
-    func startAppMonitoring() {
+    func startMonitoring() {
         disposeBag = DisposeBag()
         // Monitoring top active application
-        NSWorkspace.shared().notificationCenter.rx.notification(.NSWorkspaceDidActivateApplication)
+        NSWorkspace.shared.notificationCenter.rx.notification(NSWorkspace.didActivateApplicationNotification)
             .map { $0.userInfo?["NSWorkspaceApplicationKey"] as? NSRunningApplication }
             .bind(to: frontApplication)
             .disposed(by: disposeBag)
@@ -72,8 +72,8 @@ extension ExcludeAppService {
 
     private func save() {
         let data = applications.archive()
-        defaults.set(data, forKey: Constants.UserDefaults.excludeApplications)
-        defaults.synchronize()
+        AppEnvironment.current.defaults.set(data, forKey: Constants.UserDefaults.excludeApplications)
+        AppEnvironment.current.defaults.synchronize()
     }
 }
 
@@ -89,23 +89,24 @@ extension ExcludeAppService {
         case onePassword = "com.agilebits.onepassword"
 
         // MARK: - Properties
-        private var macApplicationIdentifier: String {
+        private var macApplicationIdentifiers: [String] {
             switch self {
             case .onePassword:
-                return "com.agilebits.onepassword-osx"
+                return ["com.agilebits.onepassword-osx", // for 1Password 6
+                        "com.agilebits.onepassword7"] // for 1Password 7
             }
         }
 
         // MARK: - Excluded
         func isExcluded(applications: [CPYAppInfo]) -> Bool {
-            return !applications.filter { $0.identifier == macApplicationIdentifier }.isEmpty
+            return !applications.filter { macApplicationIdentifiers.contains($0.identifier) }.isEmpty
         }
 
     }
 
     func copiedProcessIsExcludedApplications(pasteboard: NSPasteboard) -> Bool {
         guard let types = pasteboard.types else { return false }
-        guard let application = types.flatMap({ Application(rawValue: $0) }).first else { return false }
+        guard let application = types.compactMap({ Application(rawValue: $0.rawValue) }).first else { return false }
         return application.isExcluded(applications: applications)
     }
 }

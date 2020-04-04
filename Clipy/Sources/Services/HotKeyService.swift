@@ -1,9 +1,13 @@
 //
 //  HotKeyService.swift
-//  Clipy
 //
-//  Created by 古林俊佑 on 2016/11/19.
-//  Copyright © 2016年 Shunsuke Furubayashi. All rights reserved.
+//  Clipy
+//  GitHub: https://github.com/clipy
+//  HP: https://clipy-app.com
+//
+//  Created by Econa77 on 2016/11/19.
+//
+//  Copyright © 2015-2018 Clipy Project.
 //
 
 import Foundation
@@ -14,7 +18,6 @@ import RealmSwift
 final class HotKeyService: NSObject {
 
     // MARK: - Properties
-    static let shared = HotKeyService()
     static var defaultKeyCombos: [String: Any] = {
         // MainMenu:    ⌘ + Shift + V
         // HistoryMenu: ⌘ + Control + V
@@ -27,22 +30,27 @@ final class HotKeyService: NSObject {
     fileprivate(set) var mainKeyCombo: KeyCombo?
     fileprivate(set) var historyKeyCombo: KeyCombo?
     fileprivate(set) var snippetKeyCombo: KeyCombo?
+    fileprivate(set) var clearHistoryKeyCombo: KeyCombo?
 
-    fileprivate let defaults = UserDefaults.standard
 }
 
 // MARK: - Actions
 extension HotKeyService {
-    func popupMainMenu() {
-        MenuManager.sharedManager.popUpMenu(.main)
+    @objc func popupMainMenu() {
+        AppEnvironment.current.menuManager.popUpMenu(.main)
     }
 
-    func popupHistoryMenu() {
-        MenuManager.sharedManager.popUpMenu(.history)
+    @objc func popupHistoryMenu() {
+        AppEnvironment.current.menuManager.popUpMenu(.history)
     }
 
-    func popUpSnippetMenu() {
-        MenuManager.sharedManager.popUpMenu(.snippet)
+    @objc func popUpSnippetMenu() {
+        AppEnvironment.current.menuManager.popUpMenu(.snippet)
+    }
+
+    @objc func popUpClearHistoryAlert() {
+        guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
+        appDelegate.clearAllHistory()
     }
 }
 
@@ -50,10 +58,10 @@ extension HotKeyService {
 extension HotKeyService {
     func setupDefaultHotKeys() {
         // Migration new framework
-        if !defaults.bool(forKey: Constants.HotKey.migrateNewKeyCombo) {
+        if !AppEnvironment.current.defaults.bool(forKey: Constants.HotKey.migrateNewKeyCombo) {
             migrationKeyCombos()
-            defaults.set(true, forKey: Constants.HotKey.migrateNewKeyCombo)
-            defaults.synchronize()
+            AppEnvironment.current.defaults.set(true, forKey: Constants.HotKey.migrateNewKeyCombo)
+            AppEnvironment.current.defaults.synchronize()
         }
         // Snippet hotkey
         setupSnippetHotKeys()
@@ -64,6 +72,8 @@ extension HotKeyService {
         change(with: .history, keyCombo: savedKeyCombo(forKey: Constants.HotKey.historyKeyCombo))
         // Snippet menu
         change(with: .snippet, keyCombo: savedKeyCombo(forKey: Constants.HotKey.snippetKeyCombo))
+        // Clear History
+        changeClearHistoryKeyCombo(savedKeyCombo(forKey: Constants.HotKey.clearHistoryKeyCombo))
     }
 
     func change(with type: MenuType, keyCombo: KeyCombo?) {
@@ -78,16 +88,28 @@ extension HotKeyService {
         register(with: type, keyCombo: keyCombo)
     }
 
+    func changeClearHistoryKeyCombo(_ keyCombo: KeyCombo?) {
+        clearHistoryKeyCombo = keyCombo
+        AppEnvironment.current.defaults.set(keyCombo?.archive(), forKey: Constants.HotKey.clearHistoryKeyCombo)
+        AppEnvironment.current.defaults.synchronize()
+        // Reset hotkey
+        HotKeyCenter.shared.unregisterHotKey(with: "ClearHistory")
+        // Register new hotkey
+        guard let keyCombo = keyCombo else { return }
+        let hotkey = HotKey(identifier: "ClearHistory", keyCombo: keyCombo, target: self, action: #selector(HotKeyService.popUpClearHistoryAlert))
+        hotkey.register()
+    }
+
     private func savedKeyCombo(forKey key: String) -> KeyCombo? {
-        guard let data = defaults.object(forKey: key) as? Data else { return nil }
+        guard let data = AppEnvironment.current.defaults.object(forKey: key) as? Data else { return nil }
         guard let keyCombo = NSKeyedUnarchiver.unarchiveObject(with: data) as? KeyCombo else { return nil }
         return keyCombo
     }
 }
 
 // MARK: - Register
-fileprivate extension HotKeyService {
-    fileprivate func register(with type: MenuType, keyCombo: KeyCombo?) {
+private extension HotKeyService {
+    func register(with type: MenuType, keyCombo: KeyCombo?) {
         save(with: type, keyCombo: keyCombo)
         // Reset hotkey
         HotKeyCenter.shared.unregisterHotKey(with: type.rawValue)
@@ -97,9 +119,9 @@ fileprivate extension HotKeyService {
         hotKey.register()
     }
 
-    fileprivate func save(with type: MenuType, keyCombo: KeyCombo?) {
-        defaults.set(keyCombo?.archive(), forKey: type.userDefaultsKey)
-        defaults.synchronize()
+    func save(with type: MenuType, keyCombo: KeyCombo?) {
+        AppEnvironment.current.defaults.set(keyCombo?.archive(), forKey: type.userDefaultsKey)
+        AppEnvironment.current.defaults.synchronize()
     }
 }
 
@@ -110,24 +132,24 @@ fileprivate extension HotKeyService {
      *  Changed framework, PTHotKey to Magnet
      */
     fileprivate func migrationKeyCombos() {
-        guard let keyCombos = defaults.object(forKey: Constants.UserDefaults.hotKeys) as? [String: Any] else { return }
+        guard let keyCombos = AppEnvironment.current.defaults.object(forKey: Constants.UserDefaults.hotKeys) as? [String: Any] else { return }
 
         // Main menu
         if let (keyCode, modifiers) = parse(with: keyCombos, forKey: Constants.Menu.clip) {
             if let keyCombo = KeyCombo(keyCode: keyCode, carbonModifiers: modifiers) {
-                defaults.set(keyCombo.archive(), forKey: Constants.HotKey.mainKeyCombo)
+                AppEnvironment.current.defaults.set(keyCombo.archive(), forKey: Constants.HotKey.mainKeyCombo)
             }
         }
         // History menu
         if let (keyCode, modifiers) = parse(with: keyCombos, forKey: Constants.Menu.history) {
             if let keyCombo = KeyCombo(keyCode: keyCode, carbonModifiers: modifiers) {
-                defaults.set(keyCombo.archive(), forKey: Constants.HotKey.historyKeyCombo)
+                AppEnvironment.current.defaults.set(keyCombo.archive(), forKey: Constants.HotKey.historyKeyCombo)
             }
         }
         // Snippet menu
         if let (keyCode, modifiers) = parse(with: keyCombos, forKey: Constants.Menu.snippet) {
             if let keyCombo = KeyCombo(keyCode: keyCode, carbonModifiers: modifiers) {
-                defaults.set(keyCombo.archive(), forKey: Constants.HotKey.snippetKeyCombo)
+                AppEnvironment.current.defaults.set(keyCombo.archive(), forKey: Constants.HotKey.snippetKeyCombo)
             }
         }
     }
@@ -139,20 +161,20 @@ fileprivate extension HotKeyService {
     }
 }
 
-// MARK: - Snippet HotKey 
+// MARK: - Snippet HotKey
 extension HotKeyService {
     private var folderKeyCombos: [String: KeyCombo]? {
         get {
-            guard let data = defaults.object(forKey: Constants.HotKey.folderKeyCombos) as? Data else { return nil }
+            guard let data = AppEnvironment.current.defaults.object(forKey: Constants.HotKey.folderKeyCombos) as? Data else { return nil }
             return NSKeyedUnarchiver.unarchiveObject(with: data) as? [String: KeyCombo]
         }
         set {
             if let value = newValue {
-                defaults.set(NSKeyedArchiver.archivedData(withRootObject: value), forKey: Constants.HotKey.folderKeyCombos)
+                AppEnvironment.current.defaults.set(NSKeyedArchiver.archivedData(withRootObject: value), forKey: Constants.HotKey.folderKeyCombos)
             } else {
-                defaults.removeObject(forKey: Constants.HotKey.folderKeyCombos)
+                AppEnvironment.current.defaults.removeObject(forKey: Constants.HotKey.folderKeyCombos)
             }
-            defaults.synchronize()
+            AppEnvironment.current.defaults.synchronize()
         }
     }
 
@@ -181,7 +203,7 @@ extension HotKeyService {
         folderKeyCombos = keyCombos
     }
 
-    func popupSnippetFolder(_ object: AnyObject) {
+    @objc func popupSnippetFolder(_ object: AnyObject) {
         guard let hotKey = object as? HotKey else { return }
         let realm = try! Realm()
         guard let folder = realm.object(ofType: CPYFolder.self, forPrimaryKey: hotKey.identifier) else {
@@ -191,7 +213,7 @@ extension HotKeyService {
         }
         if !folder.enable { return }
 
-        MenuManager.sharedManager.popUpSnippetFolder(folder)
+        AppEnvironment.current.menuManager.popUpSnippetFolder(folder)
     }
 
     fileprivate func setupSnippetHotKeys() {

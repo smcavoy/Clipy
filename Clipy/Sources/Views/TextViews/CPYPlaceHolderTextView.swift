@@ -1,9 +1,13 @@
 //
 //  CPYPlaceHolderTextView.swift
-//  Clipy
 //
-//  Created by 古林俊佑 on 2016/06/29.
-//  Copyright © 2016年 Shunsuke Furubayashi. All rights reserved.
+//  Clipy
+//  GitHub: https://github.com/clipy
+//  HP: https://clipy-app.com
+//
+//  Created by Econa77 on 2016/06/29.
+//
+//  Copyright © 2015-2018 Clipy Project.
 //
 
 import Cocoa
@@ -29,13 +33,15 @@ class CPYPlaceHolderTextView: NSTextView {
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         if placeHolderText.isEmpty { return }
-        if let string = string, !string.isEmpty { return }
+        if !string.isEmpty { return }
 
         let text = placeHolderText as NSString
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineBreakMode = .byTruncatingTail
         paragraphStyle.baseWritingDirection = .leftToRight
-        let attributes: [String: Any] = [NSFontAttributeName: NSFont.systemFont(ofSize: 14), NSForegroundColorAttributeName: placeHolderColor, NSParagraphStyleAttributeName: paragraphStyle]
+        let attributes: [NSAttributedStringKey: Any] = [.font: NSFont.systemFont(ofSize: 14),
+                                                        .foregroundColor: placeHolderColor,
+                                                        .paragraphStyle: paragraphStyle]
         text.draw(at: NSPoint(x: 5, y: 5), withAttributes: attributes)
     }
 
